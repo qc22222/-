@@ -380,6 +380,20 @@ class RunwareImageGenerator:
             print("请将要处理的文件放入此文件夹，然后重新运行程序")
             return
 
+        # 默认非交互执行：处理全部文件，模式可通过环境变量 IMG_GEN_MODE 配置（默认 1）
+        if os.environ.get("NON_INTERACTIVE", "1") == "1":
+            mode = os.environ.get("IMG_GEN_MODE", "1")
+            if mode not in {"1", "2", "3", "4", "5"}:
+                mode = "1"
+            print("\n开始处理文件（非交互模式）...")
+            for p in files:
+                print(f"\n正在处理：{os.path.basename(p)}，模式 {mode}")
+                ok = self.process_file(p, mode)
+                if not ok:
+                    self.log_message(f"处理失败: {os.path.basename(p)}", "ERROR")
+            return
+
+        # 交互模式
         selected, _ = self.select_files(files)
         if not selected:
             return
