@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+build/
+dist/
+.env
+.venv
+venv/
+ENV/
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Test/Artifacts
+*.mp3
+*.jpg
+*.png
+*.wav
+*.mp4
+*.webm
+
+# Local data
+Desktop/
