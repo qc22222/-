@@ -1,107 +1,133 @@
-# 批量视频自动化工具集 - 快速测试指南
+# 流程化批量视频（模块化重构）
 
-本仓库包含 5 个按流程分工的脚本，其中第 1 步是「从 YouTube 批量下载（音频 + 缩略图）」。
+本项目提供一套端到端的批量视频生产流水线，拆分为 5 个独立模块，每个模块都有清晰的输入/输出目录，并通过上一步的产物实现串联。目标是让流程更清晰、健壮、易于测试与维护。
 
-下面以第 1 步为例，说明如何在本地测试脚本是否能完成对应功能。
+注意：仓库中仍保留了旧版目录“流程化批量视频 - 副本”。为兼容旧路径，该目录下第 3/4/5 步脚本已改为包装器，会将参数透传到新目录的同名脚本。
 
+## 一、目录结构
 
-- 目录：`流程化批量视频 - 副本/1从youtube批量下载视频/auto_downloda.py`
-- 功能：从 DOCX/文本/命令行读取 YouTube 链接，使用 yt-dlp 批量下载音频（mp3）和缩略图（jpg），并支持代理/浏览器 Cookies。
-
-## 1. 环境准备
-
-- Python 3.9+（推荐 3.10/3.11）
-- 依赖安装：
-  - `pip install -r requirements.txt`
-  - 或者单独安装：`pip install yt-dlp python-docx`
-- 系统需安装 FFmpeg：
-  - macOS: `brew install ffmpeg`
-  - Ubuntu/Debian: `sudo apt-get update && sudo apt-get install -y ffmpeg`
-  - Windows: 下载安装包 https://ffmpeg.org/ 并将 `ffmpeg` 加入 PATH
-- 如需访问 YouTube，请确保网络可达。若使用代理，默认读取 `http://127.0.0.1:7890`，可通过参数或环境变量覆盖。
-
-## 2. 最快测试方式（推荐）
-
-无需准备 DOCX 文件，直接传入一个或多个链接：
-
-- 单个链接：
-  ```bash
-  python "流程化批量视频 - 副本/1从youtube批量下载视频/auto_downloda.py" \
-    --url "https://www.youtube.com/watch?v=dQw4w9WgXcQ" --no-proxy
-  ```
-- 多个链接（重复 --url 参数）：
-  ```bash
-  python "流程化批量视频 - 副本/1从youtube批量下载视频/auto_downloda.py" \
-    --url "https://youtu.be/xxxxxxxx" \
-    --url "https://www.youtube.com/watch?v=yyyyyyyy" \
-    --no-proxy
-  ```
-- 指定输出目录和代理：
-  ```bash
-  python "流程化批量视频 - 副本/1从youtube批量下载视频/auto_downloda.py" \
-    --url "https://www.youtube.com/watch?v=dQw4w9WgXcQ" \
-    --out "~/Desktop/Youtube/YouTube下载" \
-    --proxy "http://127.0.0.1:7890"
-  ```
-
-说明：
-- 默认会将文件保存至 `~/Desktop/Youtube/YouTube下载` 目录。
-- 无代理环境请加 `--no-proxy`；有代理则可使用 `--proxy` 指定地址，或设置环境变量 `YT_PROXY`。
-
-## 3. 从 DOCX 批量读取并下载（符合生产流程）
-
-1) 在本机创建并编辑：`~/Desktop/Youtube/youtube.docx`
-   - 将要下载的 YouTube 链接每行一个粘贴进去（普通段落即可）。
-
-2) 运行脚本：
-   ```bash
-   python "流程化批量视频 - 副本/1从youtube批量下载视频/auto_downloda.py"
-   ```
-   或者显式指定 DOCX 路径：
-   ```bash
-   python "流程化批量视频 - 副本/1从youtube批量下载视频/auto_downloda.py" \
-     --docx "~/Desktop/Youtube/youtube.docx"
-   ```
-
-3) 下载结果：
-   - 音频：`*.mp3`
-   - 缩略图：`*.jpg`
-   - 保存目录：`~/Desktop/Youtube/YouTube下载`（可用 `--out` 覆盖）
-
-## 4. 也支持从文本文件读取
-
-将链接写入一个纯文本文件（每行一个）：
-```bash
-python "流程化批量视频 - 副本/1从youtube批量下载视频/auto_downloda.py" --urls-file ./links.txt
+```
+流程化批量视频/
+├── 1_youtube_downloader/
+│   ├── auto_download.py
+│   ├── input/
+│   │   └── link_input.txt      <-- 在此放入视频链接
+│   └── output/
+│       └── downloads/          <-- 下载的音频和封面存放于此
+│
+├── 2_text_rewriter/
+│   ├── w_to_y.py
+│   ├── input/
+│   │   └── original_texts/     <-- 在此放入原始文案 .docx
+│   └── output/
+│       └── rewritten_texts/    <-- 改写后的文案存放于此
+│
+├── 3_image_generator/
+│   ├── code.py
+│   └── output/
+│       └── generated_images/   <-- 生成的图片存放于此
+│
+├── 4_audio_synthesizer/
+│   ├── yin.py
+│   └── output/
+│       └── generated_audio/    <-- 生成的配音和字幕存放于此
+│
+├── 5_video_editor/
+│   └── cut.py                  <-- 安全占位实现，演练模式默认不写草稿
+│
+└── final_videos/               <-- 最终导出视频建议存放位置
 ```
 
-## 5. 可选：使用浏览器 Cookies（处理地区/年龄限制等）
+## 二、端到端流程（更新后）
 
-如部分视频需要登录/地区授权，可开启从浏览器读取 Cookies：
-```bash
-python "流程化批量视频 - 副本/1从youtube批量下载视频/auto_downloda.py" \
-  --url "https://www.youtube.com/watch?v=dQw4w9WgXcQ" \
-  --use-cookies --browser chrome
-```
-- 支持的浏览器示例：`chrome`、`brave`、`edge` 等。
-- 首次使用可能需要系统已安装对应浏览器并可由 yt-dlp 读取其登录信息。
+1) 下载：
+- 将视频链接写入 1_youtube_downloader/input/link_input.txt（每行一个），或使用 `--url` 参数传入。
+- 运行：
+  ```bash
+  python 流程化批量视频/1_youtube_downloader/auto_download.py --no-proxy
+  ```
+  文件输出至 1_youtube_downloader/output/downloads/。
 
-## 6. 常见问题排查
+2) 改写：
+- 将原始文稿放入 2_text_rewriter/input/original_texts/。
+- 运行：
+  ```bash
+  python 流程化批量视频/2_text_rewriter/w_to_y.py --prefix
+  ```
+  产物输出至 2_text_rewriter/output/rewritten_texts/。
 
-- 代理/网络问题：
-  - 报错超时或 403/429，先用浏览器确认链接可打开，再检查 `--proxy` 设置或使用 `--no-proxy`。
-- 没有生成 MP3：
-  - 确认系统已安装 FFmpeg，并且 `ffmpeg` 在命令行可执行。
-- Cookies 导入失败：
-  - 不使用 `--use-cookies` 即可绕过；或检查浏览器、登录状态与权限。
-- 路径含中文或空格：
-  - 运行命令时最好用双引号括住脚本路径与目录。
+3) 出图：
+- 自动读取第 2 步的文稿，依据段落生成占位图片（可替换为真实出图 API）。
+- 运行：
+  ```bash
+  python 流程化批量视频/3_image_generator/code.py
+  ```
+  图片输出至 3_image_generator/output/generated_images/。
 
-## 7. 其它阶段脚本（简述）
+4) 配音：
+- 自动读取第 2 步的文稿，按段落生成静音音频与 SRT（占位实现，可替换为 TTS+对齐）。
+- 运行：
+  ```bash
+  python 流程化批量视频/4_audio_synthesizer/yin.py --mp3
+  ```
+  输出至 4_audio_synthesizer/output/generated_audio/。
 
-- 2 伪原创自动化（TextRewriter）：`流程化批量视频 - 副本/2伪原创自动化/w_to_y.py`
-- 3 出图自动化：`流程化批量视频 - 副本/3出图自动化/`
-- 4 配音自动化：`流程化批量视频 - 副本/4配音自动化/`
-- 5 剪辑自动化（CapCut 草稿注入）：`流程化批量视频 - 副本/5剪辑自动化/`
+5) 剪辑：
+- 自动查找第 3 步图片与第 4 步音频/字幕；
+- 默认为“演练模式”仅打印计划，不修改草稿；如需写入占位元信息，添加 `--apply` 并通过 `--draft-json` 指定草稿路径。
+- 运行：
+  ```bash
+  python 流程化批量视频/5_video_editor/cut.py --draft-json \
+    "~/Desktop/Youtube/剪映draft/JianyingPro Drafts/<id>/draft_content.json" --apply
+  ```
 
-如需测试其他阶段，建议先阅读对应脚本顶部注释并准备所需 API 密钥/本地依赖，再按脚本的参数说明运行。
+6) 导出：
+- 打开剪映检查并导出最终视频，建议存放在项目根目录的 final_videos/ 下。
+
+## 三、跨模块配置与密钥
+
+- 建议在项目根目录创建 .env 管理密钥和配置（例如 GEMINI_API_KEY、代理地址等）。
+- 本次重构的脚本均可无密钥运行（占位实现），便于 CI 与基本联调。后续可在相同 CLI 与目录结构基础上接入真实 API/模型。
+
+## 四、命令行与参数（摘要）
+
+- 1_youtube_downloader/auto_download.py
+  - `--urls-file` 文本链接清单，默认 input/link_input.txt
+  - `--url` 可重复传入多个链接
+  - `--output-dir` 输出目录
+  - `--proxy`/`--no-proxy` 代理设置（也可用环境变量 YT_PROXY）
+
+- 2_text_rewriter/w_to_y.py
+  - `--input-dir` 原始文稿目录
+  - `--output-dir` 改写文稿目录
+  - `--prefix` 是否在每段前加入“改写：”
+
+- 3_image_generator/code.py
+  - `--input-dir` 改写文稿目录
+  - `--output-dir` 图片输出目录
+
+- 4_audio_synthesizer/yin.py
+  - `--input-dir` 改写文稿目录
+  - `--output-dir` 音频/字幕目录
+  - `--seconds-per-seg` 每段对应的时长（秒，默认 2.0）
+  - `--mp3` 尝试导出 MP3（需要系统 FFmpeg）
+
+- 5_video_editor/cut.py
+  - `--images-dir` 图片目录
+  - `--audio-dir` 音频/字幕目录
+  - `--draft-json` 剪映草稿 draft_content.json 路径
+  - `--apply` 真正写入占位元信息；默认为演练模式
+
+## 五、依赖安装
+
+- Python 3.9+
+- 安装 Python 依赖：
+  ```bash
+  pip install -r requirements.txt
+  ```
+- 可选：系统安装 FFmpeg（建议，便于音频转码）。
+
+## 六、后续计划
+
+- 将占位逻辑替换为实际的 Gemini/Runware 出图、本地/云端 TTS、字幕对齐与剪映草稿注入。
+- 继续完善 CLI 与日志，保证批量生产质量与稳定性。
